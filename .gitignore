@@ -1,0 +1,114 @@
+# =========================
+# Python
+# =========================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environnements virtuels
+.venv/
+venv/
+env/
+ENV/
+
+# Fichiers de build Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Cache Python / outils
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+htmlcov/
+
+# =========================
+# Jupyter Notebook
+# =========================
+
+.ipynb_checkpoints/
+
+# =========================
+# Données
+# =========================
+
+# Données brutes ADEME / fichiers lourds
+resources/*.csv
+resources/*.parquet
+resources/*.xlsx
+resources/*.json
+
+# Données préparées
+data/
+datasets/
+
+# Garder éventuellement la structure des dossiers
+!resources/.gitkeep
+
+# =========================
+# Modèles entraînés
+# =========================
+
+models/
+*.pkl
+*.joblib
+*.pickle
+*.cbm
+*.model
+
+# =========================
+# Logs / sorties
+# =========================
+
+logs/
+*.log
+outputs/
+reports/
+figures/
+
+# =========================
+# Variables d'environnement
+# =========================
+
+.env
+.env.*
+!.env.example
+
+# =========================
+# IDE / éditeurs
+# =========================
+
+.vscode/
+.idea/
+
+# =========================
+# Système
+# =========================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Fichiers temporaires
+# =========================
+
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# =========================
+# À NE PAS ignorer
+# =========================
+
+!README.md
+!pyproject.toml
+!requirements-lock.txt

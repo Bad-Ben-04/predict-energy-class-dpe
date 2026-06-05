@@ -1,0 +1,61 @@
+[project]
+name = "dpe-energy-class-prediction"
+version = "0.1.0"
+description = "Prediction de la classe energetique DPE des logements a partir des donnees ADEME"
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [
+    { name = "Benie BADINGA-BOUEYESSA & Berulle KAMDEM KAMDEM" }
+]
+
+dependencies = [
+    # collecte de donnees
+    "requests>=2.32",
+
+    # Manipulation de donnees
+    "pandas>=2.2.3",
+    "numpy>=2.0",
+    "polars>=1.0",
+    "pyarrow>=16.0",
+
+    # Machine learning
+    "scikit-learn>=1.6",
+    "scipy>=1.14",
+    "imbalanced-learn>=0.13",
+
+    # Modeles avances
+    "catboost>=1.2",
+    "xgboost>=2.1",
+    "lightgbm>=4.5",
+
+    # Visualisation
+    "matplotlib>=3.9",
+    "seaborn>=0.13",
+    "plotly>=5.24",
+
+    # Notebooks
+    "jupyter>=1.1",
+    "notebook>=7.2",
+    "ipykernel>=6.29",
+
+    # Utilitaires
+    "tqdm>=4.66",
+    "joblib>=1.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.0",
+    "ruff>=0.6",
+    "pytest>=8.0"
+]
+
+explain = [
+    "shap>=0.46"
+]
+
+[tool.black]
+line-length = 88
+
+[tool.ruff]
+line-length = 88
