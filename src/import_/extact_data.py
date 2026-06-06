@@ -5,7 +5,6 @@ import pandas as pd
 from datetime import date
 
 BASE_URL = "https://data.ademe.fr/data-fair/api/v1/datasets/dpe03existant/lines"
-
 REGIONS = {
     "hauts_de_france": "32"
 }
@@ -91,8 +90,8 @@ def fetch_region_to_csv(
     url,
     region_name,
     region_code,
-    start_date="2025-01-01",
-    end_date=None,
+    start_date="2024-08-01",
+    end_date= "2025-12-31",
     output_dir="resources",
     page_size=10000,
     pause=0.2,
@@ -170,8 +169,8 @@ def fetch_region_to_csv(
 
 
 def main():
-    start_date = "2025-01-01"
-    end_date = date.today().isoformat()
+    start_date = "2024-08-01"
+    end_date = "2025-12-31"
 
     for region_name, region_code in REGIONS.items():
         fetch_region_to_csv(
