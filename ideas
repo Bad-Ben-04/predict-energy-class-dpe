@@ -1,0 +1,47 @@
+Bivarié
+- Etudier le dpe par département
+
+Univarié Cat
+- Tableau avec différentes modalités
+-
+
+Univarié num
+- Suppression des outliers de la colonne hauteur_sous_plafond
+- Discrétiser la variable production_electricite_pv_kwhep_par_an
+- garder 500 max pour maison et appartement; 5000 pour immeuble. variable : volume_stockage_generateur_n1_ecs_n1
+
+
+TODO :
+recoder la variable zone climatique en les trois zones
+
+
+type_generateur_n1_ecs_n1
+→ décrit l’équipement ECS
+→ ballon électrique, chaudière gaz, CET, PAC double service, chauffe-eau gaz, réseau de chaleur…
+
+type_energie_generateur_n1_ecs_n1
+→ décrit seulement l’énergie de cet équipement
+→ électricité, gaz naturel, fioul, bois, GPL, réseau de chaleur…
+
+
+
+
+type_generateur_n1_installation_n1
+type_energie_principale_chauffage
+type_energie_generateur_n1_installation_n1
+type_emetteur_installation_chauffage_n1
+configuration_installation_chauffage_n1
+
+type_generateur_n1_ecs_n1
+type_installation_ecs_n1
+type_energie_principale_ecs
+type_energie_generateur_n1_ecs_n1
+usage_generateur_n1_ecs_n1
+
+type_generateur_n1_ecs_n1	Le type d’équipement qui produit l’eau chaude  sanitaire | Ballon électrique, chaudière gaz, CET, PAC double service
+type_installation_ecs_n1	Le type d’installation ECS : l’organisation globale du système ECS n°1	 | installation individuelle, collective, avec/sans stockage selon les modalités
+type_energie_principale_ecs	L’énergie principale utilisée pour l’ECS	| Électricité, gaz naturel, fioul, bois, réseau de chaleur
+type_energie_generateur_n1_ecs_n1	L’énergie utilisée par le générateur ECS n°1	| Électricité pour un ballon, gaz naturel pour une chaudière
+usage_generateur_n1_ecs_n1	L’usage du générateur : est-ce qu’il sert seulement à l’ECS ou aussi à autre chose	| ECS seule, chauffage + ECS
+
+

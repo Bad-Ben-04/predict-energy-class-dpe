@@ -92,7 +92,7 @@ def fetch_region_to_csv(
     region_name,
     region_code,
     start_date="2025-01-01",
-    end_date=None,
+    end_date="2025-12-31",
     output_dir="resources",
     page_size=10000,
     pause=0.2,
@@ -170,8 +170,8 @@ def fetch_region_to_csv(
 
 
 def main():
-    start_date = "2025-01-01"
-    end_date = date.today().isoformat()
+    start_date = "2025-07-01"
+    end_date = "2025-12-31"
 
     for region_name, region_code in REGIONS.items():
         fetch_region_to_csv(
