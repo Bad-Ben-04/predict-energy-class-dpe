@@ -24,8 +24,6 @@ type_energie_generateur_n1_ecs_n1
 → électricité, gaz naturel, fioul, bois, GPL, réseau de chaleur…
 
 
-
-
 type_generateur_n1_installation_n1
 type_energie_principale_chauffage
 type_energie_generateur_n1_installation_n1
@@ -43,5 +41,19 @@ type_installation_ecs_n1	Le type d’installation ECS : l’organisation globale
 type_energie_principale_ecs	L’énergie principale utilisée pour l’ECS	| Électricité, gaz naturel, fioul, bois, réseau de chaleur
 type_energie_generateur_n1_ecs_n1	L’énergie utilisée par le générateur ECS n°1	| Électricité pour un ballon, gaz naturel pour une chaudière
 usage_generateur_n1_ecs_n1	L’usage du générateur : est-ce qu’il sert seulement à l’ECS ou aussi à autre chose	| ECS seule, chauffage + ECS
+
+
+Analyse bivariée
+
+Avec la target
+2 numériques :
+- hauteur_sous_plafond_corrigee vs classe_dpe_4
+- volume_stockage_generateur_n1_ecs_n1 vs classe_dpe_4
+
+Quali/Quali
+volume_stockage_generateur_n1_ecs_n1
+vs type_batiment
+
+
 
 

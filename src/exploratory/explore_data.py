@@ -92,6 +92,8 @@ def describe_variables_numeriques(
     seuil_iqr: float = 1.5,
     min_unique_outlier: int = 5,
 ):
+    """Donne un resume statistique des variables numériques"""
+
     total_lignes = df.height
 
     resultats = []
@@ -224,6 +226,12 @@ def controle_regroupements_modalites(
     df: pl.DataFrame,
     colonnes_regroupees: list[str],
 ) :
+
+    """
+        Cette fonction vise à regrouper les modalités des variables numériques
+        possédant un grand nimbre de modalités au départ
+    """
+
     resultats = []
 
     total = df.height
@@ -250,3 +258,30 @@ def controle_regroupements_modalites(
         )
 
     return pl.DataFrame(resultats).sort("autre_%", descending=True)
+
+
+def resume_production_pv_positive(
+        df: pl.DataFrame,
+        col: str = "production_electricite_pv_kwhep_par_an",
+) -> pl.DataFrame:
+    """
+        Cette fonction renvoie un resume statistique de la variable "production_electricite_pv_kwhep_par_an"
+        En se basant uniquement sur des valeurs > 0
+    """
+
+    df_pos = df.filter(pl.col(col) > 0)
+
+    return df_pos.select(
+        [
+            pl.len().alias("nb_valeurs_positives"),
+            pl.col(col).min().alias("min"),
+            pl.col(col).quantile(0.25).alias("q25"),
+            pl.col(col).quantile(0.50).alias("mediane"),
+            pl.col(col).quantile(0.75).alias("q75"),
+            pl.col(col).quantile(0.90).alias("q90"),
+            pl.col(col).quantile(0.95).alias("q95"),
+            pl.col(col).quantile(0.99).alias("q99"),
+            pl.col(col).max().alias("max"),
+        ]
+    )
+

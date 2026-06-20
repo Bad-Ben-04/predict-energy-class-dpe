@@ -3,6 +3,8 @@ from pathlib import Path
 import textwrap
 
 import polars as pl
+import pandas as pd
+
 import matplotlib as mpl
 
 import matplotlib.pyplot as plt
@@ -366,6 +368,240 @@ def plot_target_dpe(
         bbox_inches="tight",
         facecolor="white",
         edgecolor="white",
+        transparent=False,
+    )
+
+    if verbose:
+        plt.show()
+    else:
+        plt.close(fig)
+
+    return fig_path
+
+
+def plot_dist(
+    df: pl.DataFrame,
+    col: str,
+    positive_only: bool = False,
+    output_dir: str = "src/plots/num",
+    verbose: bool = True,
+):
+    """
+    Cette fonction trace et sauvegarde l'histogramme d'une variable numérique.
+
+    Paramètres :
+    - positive_only=True : conserve uniquement les valeurs strictement positives.
+    - output_dir : dossier de sauvegarde du graphique.
+    - verbose=True : affiche le graphique.
+    """
+
+    values = df.get_column(col).drop_nulls()
+
+    if positive_only:
+        values = values.filter(values > 0)
+
+    values = values.to_numpy()
+
+    if len(values) == 0:
+        raise ValueError(f"Aucune valeur disponible pour tracer la distribution de {col}.")
+
+    safe_col = re.sub(r"[^a-zA-Z0-9_]+", "_", col)
+
+    suffix = "_positives" if positive_only else ""
+    filename = f"distribution_{safe_col}{suffix}.png"
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    fig_path = output_path / filename
+
+    fig, ax = plt.subplots(figsize=(10, 5), facecolor="white")
+
+    sns.histplot(
+        values,
+        bins=50,
+        kde=False,
+        ax=ax
+    )
+
+    titre = f"Distribution de {col}"
+    if positive_only:
+        titre += " — valeurs positives uniquement"
+
+    ax.set_title(titre)
+    ax.set_xlabel(col)
+    ax.set_ylabel("Effectif")
+    ax.grid(axis="y", alpha=0.3)
+
+    fig.tight_layout()
+
+    fig.savefig(
+        fig_path,
+        dpi=300,
+        bbox_inches="tight",
+        facecolor="white",
+        transparent=False,
+    )
+
+    if verbose:
+        plt.show()
+    else:
+        plt.close(fig)
+
+    return fig_path
+
+
+def boxplot_vs_target(
+    df: pl.DataFrame,
+    col: str,
+    target: str = "",
+    target_order: list = [],
+    output_dir: str = "src/plots/bivariee",
+    verbose: bool = True,
+):
+    """
+    Trace un boxplot d'une variable numérique selon la target.
+    """
+
+    data = (
+        df.select([col, target])
+        .drop_nulls()
+        .to_pandas()
+    )
+
+    safe_col = re.sub(r"[^a-zA-Z0-9_]+", "_", col)
+    filename = f"boxplot_{safe_col}_vs_{target}.png"
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    fig_path = output_path / filename
+
+    plt.figure(figsize=(10, 6), facecolor="white")
+
+    sns.boxplot(
+        data=data,
+        x=target,
+        y=col,
+        order=target_order,
+        showfliers=True
+    )
+
+    plt.title(f"{col} selon la classe DPE")
+    plt.xlabel("Classe DPE regroupée")
+    plt.ylabel(col)
+    plt.grid(axis="y", alpha=0.3)
+
+    plt.tight_layout()
+
+    plt.savefig(
+        fig_path,
+        dpi=300,
+        bbox_inches="tight",
+        facecolor="white",
+        transparent=False,
+    )
+
+    if verbose:
+        plt.show()
+    else:
+        plt.close()
+
+    return fig_path
+
+
+def plot_missing_train_test(
+    X_train,
+    X_test,
+    only_missing: bool = True,
+    top_n: int | None = None,
+    output_dir: str = "src/plots/missing",
+    verbose: bool = True,
+):
+    """
+    Compare le taux de valeurs manquantes entre train et test.
+    Fonction compatible avec Polars ou Pandas.
+    """
+
+    # Conversion Polars -> Pandas si nécessaire
+    X_train_pd = X_train.to_pandas() if hasattr(X_train, "to_pandas") else X_train
+    X_test_pd = X_test.to_pandas() if hasattr(X_test, "to_pandas") else X_test
+
+    missing_train = X_train_pd.isna().mean() * 100
+    missing_test = X_test_pd.isna().mean() * 100
+
+    missing_df = pd.DataFrame(
+        {
+            "Train": missing_train,
+            "Test": missing_test,
+        }
+    )
+
+    missing_df["max_missing"] = missing_df[["Train", "Test"]].max(axis=1)
+
+    if only_missing:
+        missing_df = missing_df[missing_df["max_missing"] > 0]
+
+    missing_df = missing_df.sort_values("max_missing", ascending=True)
+
+    if top_n is not None:
+        missing_df = missing_df.tail(top_n)
+
+    missing_df = missing_df.drop(columns="max_missing")
+
+    if missing_df.empty:
+        raise ValueError("Aucune valeur manquante à afficher.")
+
+    fig_height = max(6, 0.35 * len(missing_df))
+
+    fig, ax = plt.subplots(figsize=(12, fig_height), facecolor="white")
+
+    missing_df.plot(
+        kind="barh",
+        ax=ax,
+        width=0.75,
+        edgecolor="#333333",
+        linewidth=0.6,
+    )
+
+    ax.set_title(
+        "Taux de valeurs manquantes — Train vs Test",
+        fontsize=15,
+        fontweight="bold",
+        pad=14,
+    )
+
+    ax.set_xlabel("Valeurs manquantes (%)")
+    ax.set_ylabel("Variables")
+
+    ax.grid(axis="x", alpha=0.3)
+    ax.legend(title="Jeu de données")
+
+    max_value = missing_df.max().max()
+    ax.set_xlim(0, max_value * 1.15 if max_value > 0 else 1)
+
+    # Afficher les pourcentages au bout des barres
+    for container in ax.containers:
+        ax.bar_label(
+            container,
+            fmt="%.1f%%",
+            padding=3,
+            fontsize=8,
+        )
+
+    fig.tight_layout()
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    filename = "missing_values_train_test.png"
+    fig_path = output_path / filename
+
+    fig.savefig(
+        fig_path,
+        dpi=300,
+        bbox_inches="tight",
+        facecolor="white",
         transparent=False,
     )
 

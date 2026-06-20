@@ -38,6 +38,10 @@ def nettoyage_metier(df: pl.DataFrame) -> pl.DataFrame:
         .alias("hauteur_sous_plafond_corrigee")
     )
 
+    df = df.filter(
+        pl.col("hauteur_sous_plafond_corrigee").is_between(1.80, 6.00)
+    )
+
     # Variable présence photovoltaïque
     df = df.with_columns(
         (pl.col(COL_PV).fill_null(0) > 0)
@@ -84,6 +88,6 @@ def nettoyage_metier(df: pl.DataFrame) -> pl.DataFrame:
         pl.col("outlier_volume_stockage_ecs") == False
     )
 
-    df = df.drop("_type_batiment_lower")
+    df = df.drop(["_type_batiment_lower", "outlier_volume_stockage_ecs"])
 
     return df
