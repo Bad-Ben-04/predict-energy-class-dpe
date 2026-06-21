@@ -73,7 +73,7 @@ def elbow_plot(X, k_min=2, k_max=8, random_state=42):
 def fit_kmeans_pv_train(
     train_df: pl.DataFrame,
     col: str = "",
-    n_clusters: int = 4,
+    n_clusters: int = 3,
     random_state: int = 42,
 ):
     X_train_pos = (
@@ -97,7 +97,6 @@ def fit_kmeans_pv_train(
     ordre_clusters = np.argsort(centres_log)
 
     noms_classes = [
-        "pv_tres_faible",
         "pv_faible",
         "pv_moyenne",
         "pv_elevee",
@@ -158,33 +157,29 @@ def colonnes_avec_missing(df: pl.DataFrame, cols: list[str]) -> list[str]:
         if df.select(pl.col(col).null_count()).item() > 0
     ]
 
-def imputer_valeurs_manquantes(
+def imputer_apres_selection(
     df: pl.DataFrame,
     cat_cols: list[str],
     numeric_cols: list[str],
-    cat_cols_missing: list[str],
     numeric_cols_missing: list[str],
     valeur_cat: str = "Non renseigné",
     valeur_num: float = -9999,
 ) -> pl.DataFrame:
     """
-    Impute les valeurs manquantes.
-    Crée une colonne indicatrice uniquement pour les variables
-    qui avaient réellement des valeurs manquantes.
+    Imputation finale pour la modélisation.
+
+    - Catégorielles :
+      remplacement des NaN par "Non renseigné"
+      sans indicatrice séparée
+
+    - Numériques :
+      remplacement des NaN par -9999
+      avec indicatrice uniquement pour les colonnes qui avaient des NaN dans le train
     """
 
     expressions = []
 
-    # Variables catégorielles
     for col in cat_cols:
-        if col in cat_cols_missing:
-            expressions.append(
-                pl.col(col)
-                .is_null()
-                .cast(pl.Int8)
-                .alias(f"{col}_missing")
-            )
-
         expressions.append(
             pl.col(col)
             .cast(pl.Utf8)
@@ -192,7 +187,6 @@ def imputer_valeurs_manquantes(
             .alias(col)
         )
 
-    # Variables numériques
     for col in numeric_cols:
         if col in numeric_cols_missing:
             expressions.append(
@@ -210,3 +204,43 @@ def imputer_valeurs_manquantes(
 
     return df.with_columns(expressions)
 
+
+def separer_colonnes_pipeline(
+    df: pl.DataFrame,
+    features: list[str],
+):
+    """
+    Sépare les variables déjà imputées en :
+    - cat_cols : variables catégorielles texte
+    - binary_cols : variables binaires 0/1, booléennes ou indicatrices missing
+    - numeric_cols : variables numériques non binaires
+    """
+
+    cat_cols = []
+    binary_cols = []
+    numeric_cols = []
+
+    numeric_dtypes = [
+        pl.Int8, pl.Int16, pl.Int32, pl.Int64,
+        pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64,
+        pl.Float32, pl.Float64,
+    ]
+
+    for col in features:
+        dtype = df[col].dtype
+
+        if dtype in [pl.Utf8, pl.String, pl.Categorical]:
+            cat_cols.append(col)
+
+        elif dtype == pl.Boolean:
+            binary_cols.append(col)
+
+        elif dtype in numeric_dtypes:
+            nb_modalites = df[col].drop_nulls().n_unique()
+
+            if nb_modalites <= 2:
+                binary_cols.append(col)
+            else:
+                numeric_cols.append(col)
+
+    return cat_cols, binary_cols, numeric_cols

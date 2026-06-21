@@ -2,6 +2,59 @@ import polars as pl
 
 from IPython.display import display, Markdown
 
+import polars as pl
+
+
+def separer_variables_quali_bin_quanti(
+    df: pl.DataFrame,
+    target: str,
+    cols_a_exclure: list[str] | None = None,
+    seuil_modalites_quanti: int = 2,
+):
+    """
+    Sépare les variables explicatives en deux groupes :
+    - quali_bin_cols : variables qualitatives + binaires
+    - quanti_cols : variables numériques non binaires
+
+    Les variables binaires numériques comme has_PV sont rangées avec les qualitatives.
+    """
+
+    if cols_a_exclure is None:
+        cols_a_exclure = []
+
+    cols_a_exclure = set(cols_a_exclure + [target])
+
+    quali_bin_cols = []
+    quanti_cols = []
+
+    for col in df.columns:
+        if col in cols_a_exclure:
+            continue
+
+        dtype = df[col].dtype
+
+        # Colonnes texte / catégorielles / booléennes
+        if dtype in [pl.Utf8, pl.String, pl.Categorical, pl.Boolean]:
+            quali_bin_cols.append(col)
+            continue
+
+        # Colonnes numériques
+        if dtype in [
+            pl.Int8, pl.Int16, pl.Int32, pl.Int64,
+            pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64,
+            pl.Float32, pl.Float64,
+        ]:
+            nb_modalites = df[col].drop_nulls().n_unique()
+
+            # Exemple : has_PV, colonne_missing, booléen codé 0/1
+            if nb_modalites <= seuil_modalites_quanti:
+                quali_bin_cols.append(col)
+            else:
+                quanti_cols.append(col)
+
+    return quali_bin_cols, quanti_cols
+
+
 def show_values_counts_columns(df: pl.DataFrame):
     """
     Affiche le nombre de modalités distinctes et le pourcentage
