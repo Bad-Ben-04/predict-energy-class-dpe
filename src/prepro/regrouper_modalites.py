@@ -74,19 +74,16 @@ def appliquer_regroupements_modalites(
     return df
 
 
-def creer_target_dpe_4_classes(
+def creer_target_dpe_3_classes(
     df: pl.DataFrame,
     target_col: str = "etiquette_dpe",
     new_col: str = "classe_dpe_4",
 ) -> pl.DataFrame:
     return df.with_columns(
         pl.when(pl.col(target_col).is_in(["A", "B"]))
-        .then(pl.lit("tres_performant"))
-
-        .when(pl.col(target_col) == "C")
         .then(pl.lit("performant"))
 
-        .when(pl.col(target_col) == "D")
+        .when(pl.col(target_col).is_in(["C", "D"]))
         .then(pl.lit("intermediaire"))
 
         .when(pl.col(target_col).is_in(["E", "F", "G"]))
