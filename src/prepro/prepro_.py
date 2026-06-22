@@ -1,7 +1,11 @@
 from sklearn.model_selection import train_test_split
 import numpy as np
+import pandas as pd
 import polars as pl
 import matplotlib.pyplot as plt
+
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+from scipy.spatial.distance import pdist
 
 from sklearn.cluster import KMeans
 
@@ -157,36 +161,68 @@ def colonnes_avec_missing(df: pl.DataFrame, cols: list[str]) -> list[str]:
         if df.select(pl.col(col).null_count()).item() > 0
     ]
 
+
 def imputer_apres_selection(
     df: pl.DataFrame,
-    cat_cols: list[str],
+    ordinal_cols: list[str],
+    nominal_cols: list[str],
     numeric_cols: list[str],
     numeric_cols_missing: list[str],
-    valeur_cat: str = "Non renseigné",
+    ordinal_modes: dict[str, str],
+    valeur_nominale: str = "Non renseigné",
     valeur_num: float = -9999,
+    add_ordinal_missing_indicator: bool = True,
 ) -> pl.DataFrame:
     """
     Imputation finale pour la modélisation.
 
-    - Catégorielles :
-      remplacement des NaN par "Non renseigné"
-      sans indicatrice séparée
+    Ordinales :
+    - remplacement des valeurs manquantes par le mode calculé sur le train
+    - optionnel : création d'une indicatrice de valeur manquante
 
-    - Numériques :
-      remplacement des NaN par -9999
-      avec indicatrice uniquement pour les colonnes qui avaient des NaN dans le train
+    Nominales :
+    - remplacement des valeurs manquantes par "Non renseigné"
+
+    Numériques :
+    - remplacement des valeurs manquantes par une valeur numérique
+    - indicatrice uniquement pour les colonnes qui avaient des valeurs manquantes dans le train
     """
 
     expressions = []
 
-    for col in cat_cols:
+    # 1. Variables ordinales : imputation par le mode du train
+    for col in ordinal_cols:
+        if col not in ordinal_modes:
+            raise ValueError(
+                f"Aucun mode fourni pour la colonne ordinale '{col}'. "
+                "Calcule les modes avec calculer_modes_train() sur le train."
+            )
+
+        if add_ordinal_missing_indicator:
+            expressions.append(
+                pl.col(col)
+                .is_null()
+                .cast(pl.Int8)
+                .alias(f"{col}_missing")
+            )
+
         expressions.append(
             pl.col(col)
             .cast(pl.Utf8)
-            .fill_null(valeur_cat)
+            .fill_null(ordinal_modes[col])
             .alias(col)
         )
 
+    # 2. Variables nominales : imputation par "Non renseigné"
+    for col in nominal_cols:
+        expressions.append(
+            pl.col(col)
+            .cast(pl.Utf8)
+            .fill_null(valeur_nominale)
+            .alias(col)
+        )
+
+    # 3. Variables numériques : imputation + indicatrice
     for col in numeric_cols:
         if col in numeric_cols_missing:
             expressions.append(
@@ -244,3 +280,159 @@ def separer_colonnes_pipeline(
                 numeric_cols.append(col)
 
     return cat_cols, binary_cols, numeric_cols
+
+def dendrogramme_modalites_vs_target(
+    df,
+    col,
+    target,
+    min_effectif=100,
+    method="ward",
+    metric="euclidean",
+    figsize=(12, 6)
+):
+    """
+    Construit un dendrogramme des modalités d'une variable qualitative
+    à partir de leur profil de répartition selon la target.
+
+    Exemple :
+    - col = "periode_construction"
+    - target = "classe_dpe_4" ou la cible regroupée en 3 classes
+    """
+
+    data = (
+        df.select([col, target])
+        .drop_nulls()
+        .to_pandas()
+    )
+
+    counts = pd.crosstab(data[col], data[target])
+
+    # On retire les modalités trop rares
+    effectifs = counts.sum(axis=1)
+    counts = counts.loc[effectifs >= min_effectif]
+
+    # Profil en proportions par modalité
+    profils = counts.div(counts.sum(axis=1), axis=0)
+
+    # Distance entre profils
+    distances = pdist(profils.values, metric=metric)
+
+    # Clustering hiérarchique
+    Z = linkage(distances, method=method)
+
+    plt.figure(figsize=figsize)
+    dendrogram(
+        Z,
+        labels=profils.index.astype(str).tolist(),
+        leaf_rotation=45,
+        leaf_font_size=10
+    )
+    plt.title(f"Dendrogramme des modalités de {col}")
+    plt.ylabel("Distance entre profils DPE")
+    plt.tight_layout()
+    plt.show()
+
+    return profils, Z
+
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, RobustScaler
+from sklearn.impute import SimpleImputer, MissingIndicator
+
+
+def construire_preprocessor(
+    ordinal_cols,
+    nominal_cols,
+    numeric_cols,
+    binary_cols,
+    ordinal_categories,
+    add_ordinal_missing_indicator=True,
+):
+    transformers = []
+
+    if ordinal_cols:
+        ordinal_pipeline = Pipeline(
+            steps=[
+                (
+                    "imputer",
+                    SimpleImputer(strategy="most_frequent")
+                ),
+                (
+                    "encoder",
+                    OrdinalEncoder(
+                        categories=ordinal_categories,
+                        handle_unknown="use_encoded_value",
+                        unknown_value=-1,
+                    )
+                ),
+            ]
+        )
+
+        transformers.append(
+            ("ordinal", ordinal_pipeline, ordinal_cols)
+        )
+
+        if add_ordinal_missing_indicator:
+            transformers.append(
+                (
+                    "ordinal_missing",
+                    MissingIndicator(error_on_new=False),
+                    ordinal_cols,
+                )
+            )
+
+    if nominal_cols:
+        nominal_pipeline = Pipeline(
+            steps=[
+                (
+                    "imputer",
+                    SimpleImputer(
+                        strategy="constant",
+                        fill_value="Non renseigné"
+                    )
+                ),
+                (
+                    "encoder",
+                    OneHotEncoder(
+                        handle_unknown="ignore",
+                        sparse_output=False
+                    )
+                ),
+            ]
+        )
+
+        transformers.append(
+            ("nominal", nominal_pipeline, nominal_cols)
+        )
+
+    if numeric_cols:
+        numeric_pipeline = Pipeline(
+            steps=[
+                (
+                    "imputer",
+                    SimpleImputer(
+                        strategy="median",
+                        add_indicator=True
+                    )
+                ),
+                (
+                    "scaler",
+                    RobustScaler()
+                ),
+            ]
+        )
+
+        transformers.append(
+            ("numeric", numeric_pipeline, numeric_cols)
+        )
+
+    if binary_cols:
+        transformers.append(
+            ("binary", "passthrough", binary_cols)
+        )
+
+    return ColumnTransformer(
+        transformers=transformers,
+        remainder="drop",
+        verbose_feature_names_out=False,
+    )

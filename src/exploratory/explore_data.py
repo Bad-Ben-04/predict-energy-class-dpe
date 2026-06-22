@@ -338,3 +338,31 @@ def resume_production_pv_positive(
         ]
     )
 
+
+def calculer_modes_train(
+    train_df: pl.DataFrame,
+    ordinal_cols: list[str],
+) -> dict[str, str]:
+    """
+    Calcule le mode des variables ordinales uniquement sur le train.
+    Ce dictionnaire sera ensuite utilisé pour imputer train et test.
+    """
+
+    modes = {}
+
+    for col in ordinal_cols:
+        mode_values = (
+            train_df[col]
+            .drop_nulls()
+            .mode()
+            .to_list()
+        )
+
+        if len(mode_values) == 0:
+            raise ValueError(
+                f"La colonne ordinale '{col}' ne contient aucune valeur non nulle dans le train."
+            )
+
+        modes[col] = mode_values[0]
+
+    return modes

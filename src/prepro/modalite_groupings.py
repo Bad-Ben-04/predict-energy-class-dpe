@@ -401,6 +401,19 @@ configuration_installation_chauffage_n1 = {
     ],
 }
 
+periode_construction = {
+
+    "avant_1974": ["avant 1948, 1948-1974"],
+
+    "1975_1988": ["1975-1977", "1978-1982", "1983-1988"],
+
+    "1989_2012": [ "1989-2000", "2001-2005", "2006-2012"],
+
+    "2013_2021": ["2013-2021"],
+
+    "apres_2021": ["après 2021"],
+}
+
 MODALITES_GROUPINGS = {
     "zone_climatique": zone_climatique,
     "type_generateur_n1_installation_n1": type_generateur_n1_installation_n1,
@@ -408,6 +421,7 @@ MODALITES_GROUPINGS = {
     "type_generateur_n1_ecs_n1": type_generateur_n1_ecs_n1,
     "type_energie_principale_chauffage" : type_energie_principale_chauffage,
     "type_energie_principale_ecs": type_energie_principale_ecs,
-    "configuration_installation_chauffage_n1": configuration_installation_chauffage_n1
+    "configuration_installation_chauffage_n1": configuration_installation_chauffage_n1,
+    "periode_construction": periode_construction
 
 }
